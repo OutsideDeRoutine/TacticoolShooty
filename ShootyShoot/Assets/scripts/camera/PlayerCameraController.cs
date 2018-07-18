@@ -11,12 +11,14 @@ public class PlayerCameraController : MonoBehaviour {
     private bool resetingRotation = false;
     private Quaternion startRotation;
     private Quaternion resetRotation;
+    private Quaternion localResetRotation;
 
     void Start()
     {
        Cursor.lockState = CursorLockMode.Locked;
-        startRotation = transform.parent.rotation;
-        resetRotation = startRotation;
+        startRotation = transform.parent.localRotation;
+        resetRotation = transform.parent.rotation;
+        localResetRotation = startRotation;
     }
     //SACAR A UN CONTROLADOR EXTERNO
     private void Update()
@@ -27,14 +29,13 @@ public class PlayerCameraController : MonoBehaviour {
 
     void LateUpdate () {
         var h = Input.GetAxis("Mouse X");
-        var v = -Input.GetAxis("Mouse Y");
+        var v = Input.GetAxis("Mouse Y");
 
         if (freeView) FreeLook(h, v);
         else if (!resetingRotation) Look(h, v);
         else ResetRotation();
     }
 
-    // NORMALIZAR
     // LIMITAR
     void FreeLook(float h, float v)
     {
@@ -43,39 +44,42 @@ public class PlayerCameraController : MonoBehaviour {
         LookVertical(v);
 
         //Horizontal
-        transform.parent.RotateAround(transform.parent.position, Vector3.up, h * mouseSensitivity);
+        transform.parent.RotateAround(transform.parent.position, transform.up, h * mouseSensitivity);
 
-
+        localResetRotation = transform.parent.localRotation;
         resetRotation = transform.parent.rotation;
     }
 
     void Look(float h, float v)
     {
+        transform.parent.rotation = resetRotation;
         //Vertical 
         LookVertical(v);
-
+       
         //Horizontal
         player.transform.RotateAround(player.transform.position, Vector3.up, h * mouseSensitivity);
+        localResetRotation = transform.parent.localRotation;
+        resetRotation = transform.parent.rotation;
     }
 
-    // NORMALIZAR
     // LIMITAR
     void LookVertical(float v)
     {
         
-        transform.parent.RotateAround(transform.parent.position, Vector3.forward, v * mouseSensitivity);
+        transform.parent.RotateAround(transform.parent.position, player.transform.up, v * mouseSensitivity);
         
     }
 
-    // NO FUNCIONA
     void ResetRotation()
     {
-        Debug.Log(Quaternion.Angle(transform.parent.rotation, startRotation));
-        transform.parent.rotation= Quaternion.Lerp(transform.parent.rotation, startRotation, 0.01f * mouseSensitivity);
-        if (Mathf.Abs(Quaternion.Angle(transform.parent.rotation, startRotation)) < 3f)
+       
+        transform.parent.localRotation = Quaternion.Lerp(localResetRotation, startRotation,0.2f* mouseSensitivity);
+        localResetRotation = transform.parent.localRotation;
+        if (Mathf.Abs( Quaternion.Angle(transform.parent.localRotation , startRotation) )<5f)
         {
+            transform.parent.localRotation = startRotation;
             resetingRotation = false;
-            resetRotation = startRotation;
+            resetRotation = transform.parent.rotation;
         }
     }
 
